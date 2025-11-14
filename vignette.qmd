@@ -1,0 +1,192 @@
+---
+title: "Bayesian Probabilistic Selection index"
+author: "José Tiago Barroso Chagas"
+e-mail: "josetchagas@usp.br"
+orcid: "0000-0001-6123-7413"
+institute: "ESALQ/USP"
+output:
+  rmdformats::html_clean:
+    self_contained: true
+    thumbnails: true
+    lightbox: true
+    gallery: false
+    highlight: tango
+    toc: true
+editor_options:
+  chunk_output_type: console
+bibliography: references.bib
+---
+
+# Introduction
+
+This workflow will help you in the Bayesian probabilistic selection index (BPSI) usage.
+To apply this tool for your crop, it's recommended pay attention to each section and run carrefully the codes.
+Any questions? Contact us by \url{https://github.com/saulo-chaves/ProbBreed} or e-mail.
+
+## Pan-African Soybean Trials dataset
+
+Cultivar recommendation is a critical stage in plant breeding programs, and selecting superior genotypes for multiple traits remains a challenge due to the genotypes × environment (G × E) interaction. 🌱 
+
+To address this, we analyzed multi-environment trials data from Pan-African Trials, evaluating 62 soybean genotypes across 19 environments [@Araujo2025]. 🌦️ 
+
+Our methodological approach integrates Bayesian probabilistic framework to estimate genotypes risk recommendation to each trait and select genotypes according to a multitrait ideotype [@Chagas2025]. The Bayesian probabilistic selection index (BPSI)  select the 10% genotypes with higher probability of superior performance across environments to Grain Yield, Plant Height and Number of Days to Maturity. 💡
+
+
+## Bayesian probabilistic selection index (BPSI)
+
+The Bayesian probabilistic selection index enables design ideotype by increase or decrease and weighting traits.
+Along with the probabilities of superior performance across environments, it accounts for the distance between the worst genotype performance and candidate genotypes for each trait.
+
+
+
+$$
+BPSI_i = \sum_{m=1}^{t} \frac{\gamma_{pt} -\gamma_{it} }{(1/\lambda_t)}
+$$
+
+where $\gamma_p$ is the probability of superior performance of the worst genotype for the trait $m$, $\gamma$ is the probability of superior performance of genotype  $i$ for trait $m$,
+$t$ is the total number of traits evaluated, $\left(m = 1, 2, ..., t \right)$, and $\lambda$ is the weight for each trait $t$.
+
+
+
+
+# BPSI example at soybean dataset
+
+In order to provide a step-by-step guide, we applied 
+
+
+## Bayesian Model
+
+The Bayesian model are available at ProbBreed package [@Chaves2024]. We used the entry mean model.
+
+$$
+y_{jk} = \mu + l_k + g_j  + \varepsilon_{jk}
+$$
+where the $y_{jk}$  is the phenotypic record of the  genotype $j^{th}$ in the  $k^{th}$  location, $\mu$   is the intercept, $l_k$   is the main effects of the  location,  $g_j$  is the main effect of the  genotype,  and $\epsilon_{jk}$ is the residual effect.
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+
+library(ProbBreed)
+
+met_df=read.csv("https://raw.githubusercontent.com/tiagobchagas/BPSI/refs/heads/main/Data/blues_long.csv",header=T)
+
+head(met_df)
+mod = bayes_met(data = met_df,
+                gen = "gen",
+                loc = "env",
+                repl = NULL,
+                trait = "PH",
+                reg = NULL,
+                year = NULL,
+                res.het = T,
+                iter =40, cores = 4, chain = 4) #recommended run at least 4k iterations
+
+
+mod2 = bayes_met(data = met_df,
+                 gen = "gen",
+                 loc = "env",
+                 repl = NULL,
+                 trait = "GY",
+                 reg = NULL,
+                 year = NULL,
+                 res.het = T,
+                 iter = 40, cores = 4, chain = 4) #recommended run at least 4k iterations
+
+mod3 = bayes_met(data = met_df,
+                 gen = "gen",
+                 loc = "env",
+                 repl =  NULL,
+                 trait = "NDM",
+                 reg = NULL,
+                 year = NULL,
+                 res.het = T,
+                 iter = 40, cores = 4, chain = 4) #recommended run at least 4k iterations
+```
+
+## Extracting the probability of superior performance
+
+```{r}
+#| echo: true
+#| warning: false
+#| message: false
+
+
+models=list(mod,mod2,mod3)
+names(models) <- c("PH","GY","NDM")
+inc=c(FALSE,TRUE,FALSE)
+names(inc) <- names(models)
+
+results <- lapply(names(models), function(model_name) {
+  x <- models[[model_name]]  # actual model object
+
+  outs <- extr_outs(model = x,
+                    probs = c(0.05, 0.95),
+                    verbose = TRUE)
+
+  a <- prob_sup(extr = outs,
+                int = .2,
+                increase = inc[[model_name]],  # ← now model_name is a character!
+                save.df = FALSE,
+                verbose = TRUE)
+
+  return(a)
+})
+names(results) <- names(models)
+```
+
+## Running the BPSI
+
+```{r}
+#| echo: true
+
+source("Data/bpsi.R")
+
+
+
+bpsi=BPSI(problist=results,
+          increase = c(FALSE,TRUE,FALSE),
+          int = 0.1,
+          lambda =c(1,2,1),
+          save.df = F)
+```
+
+## BPSI Ranks
+
+The selected genotypes (`r bpsi$BPSI[which(bpsi$BPSI$sel=="Selected"),"gen"]`) have superior performance for the three traits evaluated Grain Yield (GY), Plant Height (PH) and Number of Days to Maturity (NDM).
+
+```{r}
+#| echo: true
+#| fig-cap: "Rank of probability of superior performance of soybean Pan-African Trials across locations in Kenya"
+
+plot(bpsi,category = "Ranks")
+```
+
+## BPSI plot
+The selected genotypes (`r bpsi$BPSI[which(bpsi$BPSI$sel=="Selected"),"gen"]`) have minor risk of cultivar recomendation to the multitrait ideotype across the Kenya environments.
+```{r}
+#| echo: true
+#| fig-cap: "Bayesian probability selection index of soybean genotypes from Pan-African Trials across locations in Kenya"
+
+plot(bpsi,category = "BPSI")
+```
+
+
+## Probabilities of superior performance 
+The probability os superior performance across environments show the risk recommendation of the soybean genotypes being in the top 20% to Grain Yield (GY) and the bottom 20% for Plant Height (PH) and Number of Days to Maturity (NDM). 
+
+```{r}
+df=bpsi$df
+df |> kableExtra::kable()
+```
+
+## Genotypes selected
+The genotypes by BPSI selected were `r bpsi$BPSI[which(bpsi$BPSI$sel=="Selected"),"gen"]`. It have the greater distance to the worst genotype to Grain Yield (GY), Plant Height (PH) and Number of Days to Maturity (NDM). The genotype selected are the 10% multitrait top performance across enviroments.
+```{r}
+df=bpsi$BPSI
+
+df |> kableExtra::kable()
+```
+

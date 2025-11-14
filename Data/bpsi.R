@@ -18,29 +18,29 @@
 ##'
 ##' @return The function returns an object of class `BPSI`, which contains two lists,
 ##' one with the `BPSI`- Bayesian Probabilistic Selection Index, and another with the original `data`-
-##' with across-environments probabilities for each trait.
+##' with across-environments probabilities of superior performance for each trait.
 ##'
 ##'
 ##'
 ##'
 ##' @details
-##' Probabilities provide the risk of recommending a selection candidate for a target
-##' population of environments or for a specific environment. `prob_sup`
-##' computes the probabilities of superior performance and the probabilities of superior stability:
+##' Probabilities provide the risk of recommending a selection candidate for a
+##'  multitrait ideotype in a target population of environments.
+##'   `BPSI` computes the probabilities of superior performance for multitrai selection:
 ##'
 ##' \itemize{\item Bayesian Probabilistic Selection Index}
 ##'
 ##'
 ##' \deqn{BPSI_i = \sum_{m=1}^{t} \frac{\gamma_{pt} -\gamma_{it} }{(1/\lambda_t)}}
 ##'
-##' where \eqn{\gamma_p} is the probability of superior performance of the worst genotype for the trait \eqn{m},
+##' where \eqn{\gamma_p} is the probability of superior performance of the worst genotype for the trait \eqn{t},
 ##' \eqn{\gamma} is the probability of superior performance of genotype  \eqn{i} for trait \eqn{t},
 ##'  \eqn{t} is the total number of traits evaluated,
 ##'   \eqn{\left(m = 1, 2, ..., t \right)},
 ##' and \eqn{\lambda} is the weight for each trait \eqn{t}.
 ##'
 ##'
-##'
+##' More details about the usage of `BPSI` can be found at \url{https://tiagobchagas.github.io/BPSI/}.
 ##'
 ##' @references
 ##'
@@ -183,7 +183,7 @@ BPSI = function(problist,increase, lambda, int, save.df = FALSE){
 
   df[names(traits)] <- lapply(seq_along(prob_l), function(i){
     prob_l[[i]]$prob[match(rownames(df), prob_l[[i]]$ID)]
-    })
+  })
 
   bpsi <- as.data.frame(apply(df, 2, function(x) {
     rank(-x, ties.method = "min", na.last = "keep")
@@ -192,16 +192,16 @@ BPSI = function(problist,increase, lambda, int, save.df = FALSE){
   if(is.null(lambda)) lambda=1 else lambda=lambda
   if(is.null(increase)) increase=inc else increase
   if(all(increase==inc)) {
-  bpsi <- apply(bpsi, 2, function(x) {
+    bpsi <- apply(bpsi, 2, function(x) {
       max(x) - x})
-       }else{
-  bpsi <- sapply(seq_along(bpsi), function(x) {
-         if(increase[x]==TRUE){
-           max(bpsi[,x])-bpsi[,x]
-         }else{
-           bpsi[,x]-min(bpsi[,x]) } })
-  colnames(bpsi) <- colnames(df)
-  rownames(bpsi) <- row.names(df)
+  }else{
+    bpsi <- sapply(seq_along(bpsi), function(x) {
+      if(increase[x]==TRUE){
+        max(bpsi[,x])-bpsi[,x]
+      }else{
+        bpsi[,x]-min(bpsi[,x]) } })
+    colnames(bpsi) <- colnames(df)
+    rownames(bpsi) <- row.names(df)
   }
 
 
@@ -315,7 +315,7 @@ BPSI = function(problist,increase, lambda, int, save.df = FALSE){
 ##'                 reg = NULL,
 ##'                 year = NULL,
 ##'                 res.het = T,
-##'                 iter =400, cores = 4, chain = 4) #recommended run at least 4k iterations
+##'                 iter =40, cores = 1, chain = 4) #recommended run at least 4k iterations and 4 cores
 ##'
 ##'
 ##' mod2 = bayes_met(data = met_df,
@@ -326,7 +326,7 @@ BPSI = function(problist,increase, lambda, int, save.df = FALSE){
 ##'                  reg = NULL,
 ##'                  year = NULL,
 ##'                  res.het = T,
-##'                  iter = 400, cores = 4, chain = 4) #recommended run at least 4k iterations
+##'                  iter = 40, cores = 1, chain = 4) #recommended run at least 4k iterations and 4 cores
 ##'
 ##' mod3 = bayes_met(data = met_df,
 ##'                  gen = "gen",
@@ -336,7 +336,7 @@ BPSI = function(problist,increase, lambda, int, save.df = FALSE){
 ##'                  reg = NULL,
 ##'                  year = NULL,
 ##'                  res.het = T,
-##'                  iter = 400, cores = 4, chain = 4) #recommended run at least 4k iterations
+##'                  iter = 40, cores = 1, chain = 4) #recommended run at least 4k iterations and 4 cores
 ##'
 ##'
 ##'
@@ -388,9 +388,8 @@ BPSI = function(problist,increase, lambda, int, save.df = FALSE){
 
 plot.BPSI = function(BPSI_result, ..., category = "BPSI"){
 
-  library(ggplot2)
   obj = BPSI_result
-
+  library(ggplot2)
 
   # Namespaces
   requireNamespace('ggplot2')
@@ -415,7 +414,7 @@ plot.BPSI = function(BPSI_result, ..., category = "BPSI"){
 
 
   obja <- reshape(obj, direction = "long",varying =list(traits),
-                                                        v.names = "rank",timevar = "trait",idvar="gen",times = traits )
+                  v.names = "rank",timevar = "trait",idvar="gen",times = traits )
 
 
 
@@ -429,12 +428,12 @@ plot.BPSI = function(BPSI_result, ..., category = "BPSI"){
   # Rank plot --------------
   if(category == "Ranks"){
 
-    library(ggplot2)
+
 
     ggplot() +
-      geom_col( aes(x = gen,y =rank, fill=sel),data=obja)+
+      geom_col( aes(x = .data[["gen"]],y =.data[["rank"]], fill=.data[["sel"]]),data=obja)+
 
-      facet_wrap(~trait, scales = "free_x") +
+      facet_wrap(~.data[["trait"]], scales = "free_x") +
       theme(
         axis.text.x = element_text(size = 4, angle = 90, hjust = 1, vjust = 0.5),
         panel.background = element_blank(),
@@ -462,22 +461,22 @@ plot.BPSI = function(BPSI_result, ..., category = "BPSI"){
 
 
 
-    ggplot(obj, aes(x = as.factor(id), y =  bpsi, fill = sel)) +  # Reverse values
+    ggplot(obj, aes(x = as.factor(.data[["id"]]), y =  .data[["bpsi"]], fill = .data[["sel"]])) +  # Reverse values
       geom_col() +
       scale_fill_manual(values = c("Selected" = "blue3",
                                    "Not_Selected" = "grey"),
                         breaks = c("Not_Selected","Selected"),
                         labels = c("Not selected","Selected")) +
       geom_point(data = data.frame(Sel = c("Not_Selected","Selected")),
-                 aes(x = 0, y = 0, color = Sel),
+                 aes(x = 0, y = 0, color = .data[["Sel"]]),
                  inherit.aes = FALSE, size = 4, alpha = 0) +
       scale_color_manual(values = c("Selected" = "blue3",
                                     "Not_Selected" = "grey"),
                          name = NULL,
                          guide = "none") +
       coord_polar(start = 0) +
-      geom_text(aes(x = id, y = max(bpsi) + 10,  # Keep original positioning
-                    label = gen, angle = angle, hjust = hjust),
+      geom_text(aes(x = .data[["id"]], y = max(.data[["bpsi"]]) + 10,  # Keep original positioning
+                    label = .data[["gen"]], angle = .data[["angle"]], hjust = .data[["hjust"]]),
                 size = 2.8) +
       theme_minimal() +
       theme(axis.text = element_blank(),
@@ -495,7 +494,6 @@ plot.BPSI = function(BPSI_result, ..., category = "BPSI"){
   }
 
 }
-
 
 #' Print an object of class `BPSI`
 #'

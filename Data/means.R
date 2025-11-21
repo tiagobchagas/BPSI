@@ -215,3 +215,4 @@ Blues_long
 hist(Blues_long$PH)
 tail(Blues_long)
 write.csv(Blues_long,file="Data/blues_long.csv",row.names = F)
+write.table(Blues_long,file="Data/blues_long.txt",row.names = F)

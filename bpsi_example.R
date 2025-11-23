@@ -6,6 +6,7 @@ library(ProbBreed)
 # source("Data/bpsi.R")
 getwd()
 met_df=read.csv("https://raw.githubusercontent.com/tiagobchagas/BPSI/refs/heads/main/Data/blues_long.csv",header=T)
+met_df <- read.table("https://raw.githubusercontent.com/tiagobchagas/BPSI/refs/heads/main/Data/blues_long.txt",header = TRUE)
 
 head(met_df)
 mod = bayes_met(data = met_df,

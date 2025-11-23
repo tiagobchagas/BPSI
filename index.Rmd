@@ -168,33 +168,34 @@ source("Data/bpsi.R")
 
 
 
-bpsi=BPSI(problist=results,
+index=bpsi(problist=results,
           increase = c(FALSE,TRUE,FALSE),
           int = 0.1,
           lambda =c(1,2,1),
           save.df = F)
+
 ```
 
 ## BPSI Ranks
 
-The selected genotypes (`r bpsi$BPSI[which(bpsi$BPSI$sel=="Selected"),"gen"]`) have superior performance for the three traits evaluated Grain Yield (GY), Plant Height (PH) and Number of Days to Maturity (NDM).
+The selected genotypes (`r index$BPSI[which(index$BPSI$sel=="Selected"),"gen"]`) have superior performance for the three traits evaluated Grain Yield (GY), Plant Height (PH) and Number of Days to Maturity (NDM).
 
 ```{r}
 #| echo: true
 #| fig-cap: "Rank of probability of superior performance of soybean Pan-African Trials across locations in Kenya"
 #| cache: true
 
-plot(bpsi,category = "Ranks")
+plot(index,category = "Ranks")
 ```
 
 ## BPSI plot
-The selected genotypes (`r bpsi$BPSI[which(bpsi$BPSI$sel=="Selected"),"gen"]`) have minor risk of cultivar recomendation to the multitrait ideotype across the Kenya environments.
+The selected genotypes (`r index$BPSI[which(index$BPSI$sel=="Selected"),"gen"]`) have minor risk of cultivar recomendation to the multitrait ideotype across the Kenya environments.
 ```{r}
 #| echo: true
 #| fig-cap: "Bayesian probability selection index of soybean genotypes from Pan-African Trials across locations in Kenya"
 #| cache: true
 
-plot(bpsi,category = "BPSI")
+plot(index,category = "BPSI")
 ```
 
 
@@ -202,14 +203,14 @@ plot(bpsi,category = "BPSI")
 The probability os superior performance across environments show the risk recommendation of the soybean genotypes being in the top 20% to Grain Yield (GY) and the bottom 20% for Plant Height (PH) and Number of Days to Maturity (NDM). 
 
 ```{r}
-df=bpsi$df
+df=index$df
 df |> kableExtra::kable()
 ```
 
 ## Genotypes selected
-The genotypes by BPSI selected were `r bpsi$BPSI[which(bpsi$BPSI$sel=="Selected"),"gen"]`. It have the greater distance to the worst genotype to Grain Yield (GY), Plant Height (PH) and Number of Days to Maturity (NDM). The genotype selected are the 10% multitrait top performance across enviroments.
+The genotypes by BPSI selected were `r index$BPSI[which(index$BPSI$sel=="Selected"),"gen"]`. It have the greater distance to the worst genotype to Grain Yield (GY), Plant Height (PH) and Number of Days to Maturity (NDM). The genotype selected are the 10% multitrait top performance across enviroments.
 ```{r}
-df=bpsi$BPSI
+df=index$bpsi
 
 df |> kableExtra::kable()
 ```
